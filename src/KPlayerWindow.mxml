@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="400" height="300" xmlns:local="*"
+	systemChrome="standard" type="normal" showStatusBar="false" visible="false"
+	title="Player Window" 
+	creationComplete="onCreationComplete()"
+	close="player.stop()" mouseDown="nativeWindow.startMove()" verticalScrollPolicy="off" horizontalScrollPolicy="off" xmlns:text="flash.text.*">
+	<mx:Style>
+		.controlOverlay {
+			background-alpha: 0.5;
+			background-color: #FF0000;
+			border-thickness: 1;
+			border-style: outset;
+			border-color: #000000;
+		}
+		.inputOverlay {
+			border-color: #888888;
+			border-style: solid;
+			border-thickness: 1;
+			border-alpha: 0.5;
+			background-alpha: 0.0;
+			color: #FFFFFF;
+			left: 20;
+			right: -20;
+		}
+	</mx:Style>
+	<mx:Script source="KPlayerWindow_source.as" />
+	<mx:Parallel id="quickAddShow" target="quickAddCanvas">
+		<mx:Fade duration="200" alphaFrom="0.5" alphaTo="0.6"/>
+		<mx:Move easingFunction="slideQuickAddCanvas" yFrom="0" yTo="60" duration="200" />
+	</mx:Parallel>
+	
+	<mx:Parallel id="quickAddHide" target="quickAddCanvas">
+		<mx:Fade duration="2000" alphaFrom="0.6" alphaTo="0.0" />
+   		<mx:Move easingFunction="slideQuickAddCanvas" yFrom="60" yTo="20" duration="200" />
+	</mx:Parallel>
+	
+	<local:KPlayer width="100%" height="100%" id="player"/>
+	
+	<mx:Canvas id="quickAddCanvas" width="100%" height="60" visible="false" 
+		showEffect="quickAddShow" hideEffect="quickAddHide" styleName="controlOverlay"
+		bottom="0"
+		>
+		<mx:HBox width="100%">
+			<mx:TextInput id="searchInput" styleName="inputOverlay" /> 
+		</mx:HBox>
+	</mx:Canvas>
+</mx:Window>

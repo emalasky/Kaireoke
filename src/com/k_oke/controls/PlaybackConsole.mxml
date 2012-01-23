@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%">
+ <mx:Script>
+        <![CDATA[
+        	import com.k_oke.QueueItem;
+            [Embed(source="assets/iconsland/64/Play1Normal.png")]
+            private const playImageClass:Class;
+            
+            [Embed(source="assets/iconsland/64/Stop1NormalBlue.png")]
+            private const stopImageClass:Class;
+            
+            [Embed(source="assets/iconsland/48/StepForwardNormalBlue.png")]
+            private const nextImageClass:Class;
+
+            [Bindable]
+            private var globals:KGlobals = KGlobals.globals;
+            
+            private function onPausePlayClick( event:Event ):void
+            {
+            	if (globals.playerWindow.player.playing)
+            		globals.controller.pause();
+            	else
+            		globals.controller.play();
+            }
+            
+            private function onNextClick( event:Event ):void
+            {
+            	// If we're playing, stop playing
+            	if (globals.playerWindow.player.playing)
+            		globals.controller.pause();
+            		
+            	// If we need to advance to the next song (say, because of multiple clicks)
+            	if (globals.nowPlaying == null)
+            	{
+            		globals.upNext = QueueItem( globals.queue.removeItemAt(0) );
+            	}	
+            	globals.nowPlaying = null;
+            }
+            private function generateQueueItemHTMLText( item:QueueItem ):String
+            {	
+            	if (item == null) return "---";
+            	
+            	var s:String = "<b>"+item.singer.firstName+"</b> performing <b>"+item.song.name+"</b> by <b>"+item.song.artist+"</b>";
+            	return s;
+            }
+        ]]>
+ </mx:Script> 
+
+	<mx:HBox width="100%" height="100%">
+		<mx:VBox width="100%">
+			<mx:Text text="Now playing:"/>
+			<mx:Text x="15" id="nowPlayingText" width="100%" htmlText="{generateQueueItemHTMLText( globals.nowPlaying )}"/>
+			<mx:Text text="Up next:"/>
+			<mx:Text x="15" id="upNextText" width="100%" htmlText="{generateQueueItemHTMLText( globals.upNext )}"/>
+			<mx:HBox width="100%" horizontalAlign="center" horizontalCenter="0" verticalAlign="middle" verticalCenter="0">
+				<mx:Button id="playPauseButton" 
+					icon="{globals.playerWindow.player.playing ? stopImageClass : playImageClass}"
+					click="onPausePlayClick(event)" 
+					horizontalCenter="0"/>
+				<mx:Button id="nextButton" icon="{nextImageClass}" click="onNextClick(event)"/>
+			</mx:HBox>
+		</mx:VBox>	
+		<mx:VSlider id="masterVolumeSlider" height="100%" />
+	</mx:HBox>
+</mx:Canvas>

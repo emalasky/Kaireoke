@@ -1,0 +1,9 @@
+Big modification to database. NOTE: song database will need to be recreated!!
+
+New set up uses two new libraries, AdvancedAutoComplete-1.0 and flexorm, both of which need to be added to the project libraries list for anything work. AutoComplete provides the component that's used to select the desired singer (though it's not backed by the database).  FlexORM does the heavy lifting of mapping our entities (Song, Singers, QueueItems, HistoryItems) to properly structured database tables.  We can (and do) still reach into the guts for optimized queries, but normal admin stuff is worlds easier.
+
+Also redid the use of KDatabase to use multiple KDatabase objects for the different types of operations.  That'll need to be cleaned up again now that the ORM stuff has been added.
+
+To get the ORM library to work, you need to add the following compiler flag to the project settings.
+
+ 	-keep-as3-metadata+=Table,Id,Column,ManyToOne,OneToMany,ManyToMany,Transient,Unique"

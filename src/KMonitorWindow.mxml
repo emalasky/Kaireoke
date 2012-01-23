@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:display="flash.display.*" layout="vertical" width="300" height="216" 
+	showStatusBar="false" type="utility" title="K-J Monitor" visible="false" creationComplete="onCreationComplete()">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.ResizeEvent;
+		
+			public var globals:KGlobals;
+			public var controller:KController;
+			public function onCreationComplete():void
+			{
+				globals = KGlobals.globals;
+				controller = globals.controller;
+				cdgCanvas.addEventListener(ResizeEvent.RESIZE, onResize);
+				monitorCDG();  // hacky
+				
+				addEventListener( "closing", onClosing );
+			}
+			
+			// Make window unclosable.  A nominal "close" action just makes the window invisible
+			public function onClosing( event:Event ):void
+			{
+				// let it close if we're exiting
+				if ( controller.exiting ) return;
+				
+				event.preventDefault();
+				visible = false;
+			}
+			
+			// Make the CDG fill the canvas
+			private function onResize( e:ResizeEvent ):void
+			{
+				if (cdgBitmap)
+				{
+					cdgBitmap.width = cdgCanvas.width;
+					cdgBitmap.height = cdgCanvas.height;
+				}
+			}
+			private var _player:KPlayer;
+			public function set player(player:KPlayer):void
+			{
+				_player = player;
+				monitorCDG(); // hacky
+			}
+			public function get player():KPlayer 
+			{
+				return _player;
+			}
+
+			private var cdgBitmap:Bitmap;
+			private function monitorCDG():void
+			{
+				// this is hacky, but allows player to be set independently of creationComplete...
+				if (!_player || !controller) return;   // not ready yet
+				
+				try {
+					cdgCanvas.rawChildren.removeChild(cdgBitmap);
+				}					
+				catch( ignored:Error ){}
+				
+				cdgBitmap = new Bitmap( player.cdgBitmapData );
+				cdgCanvas.rawChildren.addChild(cdgBitmap);
+			}
+		]]>
+	</mx:Script>
+	<mx:Canvas id="cdgCanvas" width="100%" height="100%" backgroundColor="0x00000000"/>
+</mx:Window>

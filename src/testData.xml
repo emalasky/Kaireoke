@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+   <XMLList id="songs">
+        <song>
+            <qpick>1377</qpick>
+            <artist>Bowie, David</artist>
+            <title>Ashes to Ashes</title>
+            <discCode>Sc7345-10</discCode>
+            <filename>k:\Karaoke\New Songs\Bowie, David - Ashes to Ashes - Sc7345-10.zip</filename>
+            <tags>
+              <tag>70s</tag>
+              <tag>rock</tag>
+              <tag>glam rock</tag>
+            </tags>
+        </song>
+        <song>
+            <qpick>6722</qpick>
+            <artist>Queen</artist>
+            <title>Another One Bites the Dust</title>
+            <discCode>Dk09-12</discCode>
+            <filename>k:\\Karaoke\\New Songs\\Queen - Another One Bites the Dust - Dk09-12.zip</filename>
+            <tags>
+              <tag>rock</tag>
+            </tags>
+        </song>
+        <song>
+            <qpick>3324</qpick>
+            <artist>Prince</artist>
+            <title>Darlin Nikki</title>
+            <discCode>Sgb8857-03</discCode>
+            <filename>k:\\Karaoke\\New Songs\\Prince - Darlin Nikki - Sgb8857-03.zip</filename>
+            <tags>
+              <tag>rock</tag>
+              <tag>80s</tag>
+              <tag>soul</tag>
+            </tags>
+        </song>
+        <song>
+            <qpick>33456</qpick>
+            <artist>ABBA</artist>
+            <title>Waterlou</title>
+            <discCode>Dk09-12</discCode>
+            <filename>k:\\Karaoke\\New Songs\\ABBA - Waterlou - Dk09-12.zip</filename>
+            <tags></tags>
+        </song>
+        <song>
+            <qpick>8373</qpick>
+            <artist>Bowie, David Ashes to Ashes</artist>
+            <title></title>
+            <discCode>Ggb73-10.zip</discCode>
+            <filename>k:\\Karaoke\\New Songs\\Bowie, David Ashes to Ashes - Sc7345-10.zip</filename>
+            <tags></tags>
+        </song>
+        <song>
+            <qpick>7991</qpick>
+            <artist>Sgb8857</artist>
+            <title>03</title>
+            <discCode>Prince-Darlin Nikki</discCode>
+            <filename>k:\\Karaoke\\New Songs\\Sgb8857 - 03 - Prince-Darlin Nikki - .zip</filename>
+            <tags></tags>
+        </song>
+    </XMLList>
+
+

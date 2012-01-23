@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:display="flash.display.*" layout="vertical" width="600" height="400" 
+	showStatusBar="false" title="Controller Test Window" creationComplete="onCreationComplete()"
+	close="doQuit()"
+	visible="false"
+	>
+	
+	
+	<!-- Sorry. KControllerWindow is a horrible name.  Totally confuses the "controller" of MVC with the "controller"
+		of the program (i.e. the KJ).
+		
+		So, KControllerWindow should just be a window for testing the Controller.
+		
+		Let's use KDashboardWindow for the real UI that the KJ will use.  We can rename it later, but it'll be easier if 
+		we keep it separate from testing shit like KControllerWindow.
+	-->
+	
+	<mx:Script>
+	
+	
+		<![CDATA[
+			import com.k_oke.KDatabaseEvent;
+			import mx.events.FileEvent;
+			[Bindable]
+			public var controller:KController;
+			
+			[Bindable]
+			public var globals:KGlobals;
+						
+			public function onCreationComplete():void
+			{
+				// grab the player and initialize our cdg monitor
+				globals = KGlobals.globals;
+				controller = globals.controller;
+				
+				globals.adminDatabase.addEventListener( "addProgress", onAddProgress );
+				globals.adminDatabase.addEventListener( "addComplete", onAddComplete );
+				globals.adminDatabase.addEventListener( "unableToAdd", _onUnableToAdd);
+			}
+			
+			public function onPausePlay( event:Event ):void
+			{
+				var p:KPlayer = globals.playerWindow.player;
+				if (p.playing)
+				{
+					p.pause();
+				}
+				else if (p.paused)
+				{
+					p.play();
+				}
+				else
+				{
+					// do nothing	
+				}
+			}
+			
+			public function testCamera():void
+			{
+				var p:KPlayer = globals.playerWindow.player;
+				p.videoCamera = Camera.getCamera();
+				p.displayVideo = true;
+				p.transparentBackground = true;
+			}
+			private function _onUnableToAdd(e:Event):void
+			{
+				trace("unable to add: "+e.toString());
+			}
+			
+			public function addDirToDB():void
+			{
+				var browseFile:File = new File();
+				browseFile.browseForDirectory("select directory to add");
+				browseFile.addEventListener(Event.SELECT, function (event:Event):void
+					{
+						globals.adminDatabase.addFileAsync( browseFile );
+					});
+			}
+			public function onAddProgress( event:KDatabaseEvent ):void
+			{
+				trace("progress: "+event.directoriesCompleted +" of "+event.directoriesAdded +" directories");
+				progressLabel.text = "adding ("+event.directoriesCompleted+"/"+event.directoriesAdded+")";
+				if (event.url)
+				{				
+					trace("directory: "+event.url);
+				}
+			}
+			public function onAddComplete( event:KDatabaseEvent ):void
+			{
+				trace("completed: "+event.directoriesCompleted +" of "+ event.directoriesCompleted +" directories");
+				progressLabel.text = "DONE ("+event.directoriesCompleted+"/"+event.directoriesAdded+")";
+			}
+			public function onAddError( event:KDatabaseEvent ):void
+			{
+				trace("FATAL ERROR doing directory add");
+				progressLabel.text = "ERROR!!! ("+event.directoriesCompleted+"/"+event.directoriesAdded+")";
+			}
+			public function doQuit():void
+			{
+				NativeApplication.nativeApplication.exit();
+			}
+		]]>
+	</mx:Script>
+	<mx:Panel title="test commands" width="100%" layout="horizontal">
+		<mx:Button label="browse" click="controller.browseNew()" />
+		<mx:Button label="{globals.playerWindow.player.playing ? 'pause' : 'play'}" click="onPausePlay(event)" />
+		<mx:Button label="stop" click="globals.playerWindow.player.stop()" />
+		<mx:Button label="add camera" click="testCamera()" />
+		<mx:Button label="Quit" click="doQuit()" />
+	</mx:Panel>
+	<mx:Panel title="monitor" >
+		<mx:CheckBox label="Show K-J Monitor" id="cb_showKJMonitor" selected="{globals.monitorWindow.visible}" change="globals.monitorWindow.visible = cb_showKJMonitor.selected"/>
+	</mx:Panel>
+	<mx:Panel title="player debug" layout="vertical">
+		<mx:Text text="CDG: {globals.playerWindow.player.cdgPosition}" />
+		<mx:Text text="soundChannel: {globals.playerWindow.player.soundChannelPosition}" />
+		<mx:Text text="bufferedSound: {globals.playerWindow.player.bufferedSoundPosition} / {globals.playerWindow.player.bufferedSoundPosition / 44.1}" />
+	</mx:Panel>
+	
+	<mx:Panel title="Database Stuff" layout="vertical">
+		<mx:HBox width="100%">
+		<mx:Button label="clear *ALL*" click="globals.adminDatabase.dropAllTables()" />
+		<mx:Button label="add dir" click="addDirToDB()"/>
+				</mx:HBox>
+				<mx:HBox width="100%">
+		
+		<mx:Button label="sample songs" click="globals.adminDatabase.buildSongsFromSampleFile()" />	
+		<mx:Button label="sample queue" click="globals.controller.buildTestQueue()" />	
+		<mx:Button label="refresh queue" click="globals.controller.refreshQueue()" />		
+		</mx:HBox>
+		<mx:HBox width="100%">
+			<mx:Label id="progressLabel" text="(-/-)"/>
+		</mx:HBox>		
+	</mx:Panel>
+</mx:Window>

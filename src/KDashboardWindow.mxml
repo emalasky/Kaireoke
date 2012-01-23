@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Window xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="com.k_oke.controls.*" 
+	xmlns:hc="com.hillelcoren.components.*"
+	xmlns:acclasses="com.hillelcoren.components.autoComplete.classes.*"
+	layout="vertical" width="700" height="700"
+	title="K-J Dashboard" visible="false" showStatusBar="false" creationComplete="onCreationComplete(event)"
+	verticalScrollPolicy="off" horizontalScrollPolicy="off" 
+	>
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.managers.FocusManager;
+			import nz.co.codec.flexorm.EntityManager;
+			import com.k_oke.Song;
+			import mx.events.CollectionEvent;
+			import mx.events.DragEvent;
+			import com.k_oke.Singer;
+			import com.k_oke.QueueItem;
+			import com.k_oke.KDatabase;
+			import com.hillelcoren.components.*;
+			import mx.binding.utils.BindingUtils;            
+			
+			[Bindable]
+			private var globals:KGlobals;
+			
+			[Bindable]
+			public var singerAutoCompleteDataProvider:ArrayCollection;
+			
+			public function onCreationComplete( event:Event ):void
+			{
+				globals = KGlobals.globals;
+				globals.controller.addEventListener("initComplete", onControllerInitComplete);
+			}
+			
+			private var _songsDB:KDatabase;
+			private var _singersDB:KDatabase;
+			private var _queueDB:KDatabase;
+			private function onControllerInitComplete( event:Event ):void
+			{
+				_songsDB = globals.songsDatabase;
+				_singersDB = globals.singersDatabase;
+				_queueDB = globals.queueDatabase; 
+				_songsDB.addEventListener( SQLEvent.RESULT, onSearchResult );
+				
+				// Reads from the model to update the status text
+                BindingUtils.bindProperty(singer, "dataProvider", this, "singerAutoCompleteDataProvider");
+                BindingUtils.bindProperty(singerQueue, "dataProvider", globals, "queue");
+		
+				globals.controller.refreshSingers();
+				globals.controller.refreshQueue();
+				
+			}
+			//
+			// SONG SEARCH
+			//
+			public function updateSearch():void
+			{
+				if (!_songsDB)
+				{
+					return;
+				}
+				
+				if (song.text.length == 0)
+				{
+					_songsDB.cancelMatch();
+					searchResults.dataProvider = null;
+					return;
+				}
+				else
+				{
+					_songsDB.match( KDatabase.MATCH_SONGS, song.text, 20);
+				}
+			}
+			private function onSearchResult( event:SQLEvent ):void
+			{
+				var db:KDatabase = KDatabase(event.target);
+				var results:Array = db.getResultData();
+				searchResults.dataProvider = results;
+				//if (this["_searchQuery"]) this["_searchQuery"].text = stmt.text;
+			}
+			
+			private function onSearchResultsKeyDown(event:KeyboardEvent):void
+			{
+				switch( event.keyCode )
+				{
+					case Keyboard.ENTER:
+					queueSelectedFromSearchResults();
+					break;
+				}
+				return;
+			}
+			
+			private function onQueueKeyDown(event:KeyboardEvent):void
+			{
+				switch( event.keyCode )
+				{
+					case Keyboard.ENTER:
+					playSelectedFromQueue();
+					break;
+				}
+				return;
+			}
+			// @REMOVE
+			private function playSelectedFromSearchResults():void
+			{
+				if (searchResults.selectedItem)
+				{
+					var file:File = new File();
+					file.url = searchResults.selectedItem.filepath;
+					globals.playerWindow.player.stop();
+					globals.controller.playZipFile( file );
+				}
+			}
+			
+			private function createTemporarySinger( name:String ):Singer
+			{
+				if ( !name || name == "" ) return null;
+				
+				var singer:Singer = new Singer();
+				singer.persistent = false;
+				var names:Array = name.split(" ");
+				singer.firstName = names[0];
+				if (names.length >= 2)
+					singer.lastName = names[1];
+					
+				var rand:Number = Math.floor( Math.random() * 10000 );
+				singer.username = singer.firstName+"_"+String(rand);
+				
+				// @TODO: check for dupes in the username
+				globals.controller.saveSinger( singer );
+				//globals.singers.addItem( singer );
+				
+				return singer;				
+			}
+			private function playSelectedFromQueue():void
+			{
+				if (singerQueue.selectedItem)
+				{
+					//var file:File = new File();
+					globals.playerWindow.player.stop();
+					
+					globals.nowPlaying = null;
+					globals.upNext = QueueItem( singerQueue.selectedItem );
+					//file.url = globals.upNext.song.filePath;
+					globals.controller.removeQueueItemAt( singerQueue.selectedIndex );
+
+					//globals.controller.playZipFile( file );					
+					globals.controller.play();					
+				}
+			}
+			
+			private function highlightSingerField():void
+			{
+				singer.setFocus();
+			}
+			private function highlightSongField():void
+			{
+				song.setFocus();
+			}
+			private function queueSelectedFromSearchResults():void
+			{
+				var song:Song = Song( EntityManager.instance.load( Song, searchResults.selectedItem.song_id ) );
+				if (!song)
+				{
+					highlightSongField();
+					return;
+				}
+				
+				var singerObj:Singer = Singer(singer.selectedItem);
+				if (!singerObj)
+				{
+					singerObj = createTemporarySinger( singer.searchText );
+					if (!singerObj)
+					{
+						highlightSingerField();
+						return;
+					}
+				}
+				
+				
+				var qi:QueueItem = new QueueItem();
+				qi.singer = singerObj;
+				qi.song = song;
+				globals.controller.addQueueItem( qi );
+			}
+			
+			private function initSingerQueue():void
+			{
+				updateSingerQueue();
+			}
+			private function updateSingerQueue():void
+			{
+				//globals.database.querySingerQueue();
+			}
+			
+			private function songQueueLabelFunction(item:Object, column:DataGridColumn):String
+			{
+				var props:Array = column.dataField.split(".");
+				switch( props.length )
+				{
+					case 1:
+						return item[  String(props[0]) ];
+					case 2:
+						return item[ String(props[0]) ][ String(props[1])];
+				}
+				return "foo";
+			}
+			
+			private function singerAutoCompleteLabelFunction( item:Object ):String
+			{
+				var singer:Singer = Singer(item);
+				return singer.firstName +" "+ (singer.lastName ? singer.lastName : "") +" ( "+singer.username+" )";
+			}
+			private function singerAutoCompleteSelectFunction( item:Object ):Boolean 
+			{
+				return false;
+			}
+			
+			private function onSingerQueueDragStart( event:DragEvent ):void
+			{
+				trace("dragStart event = "+event);
+				globals.queue.addEventListener(  mx.events.CollectionEvent.COLLECTION_CHANGE, 
+					globals.controller.onQueueCollectionChange );
+			}
+			private function onSingerQueueDragComplete( event:DragEvent ):void
+			{
+				trace("dragComplete event = "+event);
+				globals.queue.removeEventListener(  mx.events.CollectionEvent.COLLECTION_CHANGE, 
+					globals.controller.onQueueCollectionChange );
+			}
+			private function onSingerQueueDragDrop( event:DragEvent ):void
+			{
+				trace("dragDrop event = "+event);
+			}
+			
+			[Bindable]
+			private var _detailSinger:Singer = null;
+			private function onSingerMasterChange():void
+			{
+				_detailSinger = Singer( singersDataGrid.selectedItem );
+			}
+			private function onSingerDetailUpdate():void
+			{
+				globals.controller.saveSinger( _detailSinger );
+			}
+			private function onNewSinger():void
+			{
+				singersDataGrid.selectedItem = null;
+				_detailSinger = new Singer();
+				_detailSinger.persistent = true;
+			}
+
+		]]>
+	</mx:Script>
+	
+	<mx:Canvas id="performerView" width="100%" height="100%"
+		verticalScrollPolicy="off" horizontalScrollPolicy="off">
+<!--	
+	-add show/hide bg video checkbox
+	-add button to launch bgvideo chooser
+	-add third screen checkbox (if multiple copies of video streams with varying bg filtering is light enough to do.) 
+	-see if I can copy CDG feed with little CPU cost so a copy can be seen on controler screen (KJ often can't see CDG screen, so that is a good feature to add
+	-add key control
+	-add tempo control
+	-add next singer starts in X seconds contol 0=off with countdown next to nunber
+	-make play list
+		-highlight singers who have not sang yet
+		-highlight singers out of sequence in a different color
+		-put merge down button next to first occurance of person on list multiple times and merge up next to lower occurances. 
+		-also put a different singer button there
+		-put play now button next to each singer
+			-play now puts starts song and puts singer in history list with that song and moves their other sonngs to bottom of list
+		-if singer has multiple songs indent them so it is easy to see they belong toggether and also easy to launch the alternate choices
+	-add bad song button to make song that is playing as bad	
+		-then automatically do a search for alternates of the same song
+		-move songs marked as bad to special review directory and gray them out in selection list until they are moved out of that directory
+		-have a button or menu item to clear that bad song directory
+			-give them the option of putting them in a trash dir of deleting them (they may want to keep them so they know they have to get a new copy of that song. 
+	-make recently sang list (reverse order). singer statistics next to singers name. Singer statistics update after every song. button or mouse over icon to show thier history
+	-make checkbox that makes people go to bottom of list as soon as their song plays
+	-play from CD button
+	-play from Internet button
+	-quick play songs for between singers 
+		-checkbox to have them automatically start
+		-rightclick to set song in the quickplay item
+		-quickplay may be ordered list rather then buttons
+	-make a second add to queue that adds to holding queue.
+		-seperate window so people can add themselves without hurting queue
+	-when esc key is pressed check to see if the CDG window size is changed and set button lable. 
+-->
+		<mx:VDividedBox width="100%" height="100%" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+			<mx:HBox width="100%">
+				<controls:PlaybackConsole id="console" width="100%" height="100%" />
+				<controls:Monitor id="monitor" width="300" maxWidth="300" height="100%"/>
+			</mx:HBox>
+		
+	        <mx:DataGrid id="singerQueue" width="100%" height="100%" 
+	        	creationComplete="initSingerQueue()" labelFunction="songQueueLabelFunction"
+	        	allowMultipleSelection="false"
+	        	dragEnabled="true" dropEnabled="true"
+	        	dragMoveEnabled="true" 
+	        	dragStart="onSingerQueueDragStart(event)" dragDrop="onSingerQueueDragDrop(event)" dragComplete="onSingerQueueDragComplete(event)" 
+	        	keyDown="onQueueKeyDown(event)"
+            >
+	            <mx:columns>
+	                <mx:DataGridColumn dataField="singer.firstName" headerText="Singer"/>
+	                <mx:DataGridColumn dataField="song.name" headerText="Song"/>
+	                <mx:DataGridColumn dataField="song.artist" headerText="Song Artist"/>
+	                <mx:DataGridColumn dataField="song.fileName" headerText="File name"/>
+	            </mx:columns>
+	        </mx:DataGrid>
+		    
+		    <mx:Accordion width="100%" height="100%">
+
+		    <!-- SEARCH -->
+		    <mx:Canvas label="Search" width="100%" height="100%">
+		         <mx:VBox width="100%" height="100%">
+		         	
+		         <mx:Label width="100%" 
+		            text="Search for song and singer below. Queue song with button/enter/double-click."/>
+				<mx:HBox width="100%">
+					<mx:Label text="Song/Artist Search" />
+			    	<mx:TextInput id="song" width="300" change="updateSearch()"/>
+				</mx:HBox>
+		        <mx:DataGrid id="searchResults" width="100%" height="100%" 
+		        	keyDown="onSearchResultsKeyDown(event)">
+		            <mx:columns>
+		            	<mx:DataGridColumn dataField="song_id" headerText="ID" />
+		                <mx:DataGridColumn dataField="artist" headerText="Artist"/>
+		                <mx:DataGridColumn dataField="title" headerText="Song"/>
+		                <mx:DataGridColumn dataField="filename" headerText="File name"/>
+		            </mx:columns>
+		        </mx:DataGrid>
+				<mx:HBox width="100%">
+					<mx:Label text="Singer" right="0" />
+			    	<hc:AutoComplete id="singer" right="0" width="200" 
+			    		autoSelectEnabled="false"
+			    		autoSelectFunction="singerAutoCompleteSelectFunction"
+			    		labelFunction="singerAutoCompleteLabelFunction"/>
+			    	<mx:Button id="queueSelectedSearchResultButton" label="Add to Queue" click="queueSelectedFromSearchResults()" />
+				</mx:HBox>
+		        </mx:VBox>
+		    </mx:Canvas>
+
+		    
+		    <!-- SINGERS -->
+		    <mx:Canvas label="Singers" width="100%" height="100%">
+		    	<mx:HDividedBox width="100%" height="100%">
+		    		<mx:VBox width="100%" height="100%">
+		    			<mx:DataGrid id="singersDataGrid" width="100%" height="100%" dataProvider="{globals.singers}" change="onSingerMasterChange()"/>
+			    		<mx:Button label="new singer" click="onNewSinger()"/>
+		    		</mx:VBox>
+		    		<mx:VBox width="100%" height="100%">
+		    			<mx:HBox width="100%">
+		    				<mx:VBox left="0">
+		    					<mx:Label text="username" />
+			    				<mx:TextInput id="username" text="{_detailSinger.username}" change="{_detailSinger.username = username.text}"/>
+		    				</mx:VBox>
+		    				<mx:VBox right="0">
+		    					<mx:Label text="ID" />
+			    				<mx:TextInput id="singer_id" text="{_detailSinger.id}" editable="false"/>
+		    				</mx:VBox>
+		    				
+		    			</mx:HBox>
+		    			<!-- FIRST NAME, LAST NAME -->
+		    			<mx:HBox width="100%">
+		    				<mx:VBox width="50%">
+		    					<mx:Label text="First Name" />
+			    				<mx:TextInput id="firstName" text="{_detailSinger.firstName}" change="{_detailSinger.firstName = firstName.text}"/>
+		    				</mx:VBox>
+		    				<mx:VBox width="50%">
+		    					<mx:Label text="Last Name" />
+			    				<mx:TextInput id="lastName" text="{_detailSinger.lastName}" change="{_detailSinger.lastName = lastName.text}"/>
+		    				</mx:VBox>	
+		    			</mx:HBox>
+
+		    			<!-- Email, Phone -->
+		    			<mx:HBox width="100%">
+		    				<mx:VBox width="50%">
+		    					<mx:Label text="Email address" />
+			    				<mx:TextInput id="email" text="{_detailSinger.email}" change="{_detailSinger.email = email.text}"/>
+		    				</mx:VBox>
+		    				<mx:VBox width="50%">
+		    					<mx:Label text="Phone #" />
+			    				<mx:TextInput id="phone" text="{_detailSinger.phone}" change="{_detailSinger.phone = phone.text}"/>
+		    				</mx:VBox>	
+		    			</mx:HBox>		    		
+		    			
+		    			<mx:Button label="Update" click="onSingerDetailUpdate()"/>	
+		    		</mx:VBox>
+		    	</mx:HDividedBox>
+		    </mx:Canvas>
+		    			
+		    </mx:Accordion>
+
+			<!--	
+			<mx:Text width="100%" id="_searchQuery" visible="false" />
+		 	-->
+		 
+		</mx:VDividedBox>
+	</mx:Canvas>
+</mx:Window>

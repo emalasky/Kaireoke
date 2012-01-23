@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:WindowedApplication xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" width="305" height="95" 
+	title="-DEBUG-"
+	showStatusBar="false"
+	 xmlns:filesystem="flash.filesystem.*" xmlns:local="*" applicationComplete="initController()">
+	<!--
+	<mx:Style source="styles/style.css"/>
+	<mx:Style source="styles/custom.css"/>
+	-->
+	<mx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import com.k_oke.*;
+			
+			private var player:KPlayer;
+			public var cdgWindow:NativeWindow;
+			
+			[Bindable]
+			private var globals:KGlobals;
+			
+			public var rootPath:File;
+
+
+			
+			public function initController():void
+			{
+				globals = KGlobals.globals;
+				globals.rootPath = File.applicationDirectory.resolvePath("SC8532-03 - Prince & Revolution - Darling Nikki");
+				globals.controller = new KController();
+				globals.controller.addEventListener( FlexEvent.CREATION_COMPLETE, onControllerComplete );
+			}
+			
+			public function createPlayerAndController():void
+			{
+				initController();
+			}
+			public function getTestData():void
+			{
+				//retrieves the test data and returns it formated for the search results grid
+			}
+			public function addToQueue():void
+			{
+				//move song to bottom of queue
+			}
+	
+			public function fixSong():void
+			{
+				//make artist, title and disc code fields editable
+				//the edit will change the file name and update the database. 
+				//should there be an undo or maybe a change log is good enough
+			}
+
+			public function playNow():void
+			{
+				//instantly starts the song
+				//should be a double-click event for safety
+				//when A new song interupts a song that is playing it would be cool to hae a way to go back to the old song
+				//and maybe even back to right where it left off.
+			}
+		
+			public function onControllerComplete( event:FlexEvent ):void
+			{
+				player = globals.playerWindow.player;	
+			}
+		]]>
+	</mx:Script>
+
+</mx:WindowedApplication>
